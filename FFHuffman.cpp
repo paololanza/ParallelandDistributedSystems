@@ -23,7 +23,7 @@ struct Node
 };
 
 // Function to allocate a new tree node
-Node* getNode(char ch, int freq, Node* left, Node* right)
+Node* getNode(string ch, int freq, Node* left, Node* right)
 {
 	Node* node = new Node();
 
@@ -85,7 +85,7 @@ void decode(Node* root, int &index, string str)
 }
 
 void map_line(string line, 
-              unordered_map<char,int> &mapper,
+              unordered_map<string,int> &mapper,
               int &character_num)
 {
     // stringstream class check1
@@ -93,17 +93,12 @@ void map_line(string line,
      
     string intermediate;
 
-    unordered_map<char,int> temp;
+    unordered_map<string,int> temp;
      
-    // // Tokenizing w.r.t. space ' '
-    // while(getline(check1, intermediate, ' '))
-    // {
-    //     temp[intermediate] += 1;
-    // }
-
-    for(char c : line)
+    // Tokenizing w.r.t. space ' '
+    while(getline(check1, intermediate, ' '))
     {
-        temp[c] += 1;
+        temp[intermediate] += 1;
     }
 
     for(auto item : temp)
@@ -140,7 +135,7 @@ void buildHuffmanTree(string text)
         readFile.open(text, ios::in);
         // count frequency of appearance of each character
         // and store it in a map
-        unordered_map<char, int> mapper;
+        unordered_map<string, int> mapper;
         vector<future<void>> tasks;
         {
             utimer t1("Reading Characters Time:");
@@ -209,7 +204,7 @@ void buildHuffmanTree(string text)
                 // of the two nodes' frequencies. Add the new node
                 // to the priority queue.
                 int sum = left->freq + right->freq;
-                leaf_nodes.push(getNode('\0', sum, left, right));
+                leaf_nodes.push(getNode("\0", sum, left, right));
             }
         }
         // root stores pointer to root of Huffman Tree
@@ -276,7 +271,7 @@ void buildHuffmanTree(string text)
 // Huffman coding algorithm
 int main()
 {
-	string text_path = "texttest.txt";
+	string text_path = "text.txt";
 
 	buildHuffmanTree(text_path);
 
