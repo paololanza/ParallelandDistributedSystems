@@ -77,7 +77,7 @@ void decode(Node* root, int &index, string str)
 }
 
 // Builds Huffman Tree and return a map that contains a characters with its encoding
-unordered_map<string,string> buildHuffmanEncoding(unordered_map<char, int>)
+unordered_map<char,string> buildHuffmanEncoding(unordered_map<char, int> mapper)
 {  
     // Create a priority queue to store live nodes of
     // Huffman tree;
