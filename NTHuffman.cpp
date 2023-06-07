@@ -5,14 +5,14 @@
 #include <fstream>
 #include <map>
 #include <future>
-#include <vector>
+#include <mutex>
 
 #include "utimer.hpp"
-#include "MapFarm.cpp"
+#include "./ThreadPool/ThreadPool.hpp"
 
 using namespace std;
-using namespace ff;
 
+mutex mtx;
 
 // A Tree node
 struct Node
@@ -84,34 +84,35 @@ void decode(Node* root, int &index, string str)
 		decode(root->right, index, str);
 }
 
-// void map_line(string line, 
-//               unordered_map<string,int> &mapper,
-//               int &character_num)
-// {
-//     // stringstream class check1
-//     stringstream check1(line);
+void map_line(string line, 
+              unordered_map<char,int> &mapper,
+              int &character_num)
+{
+    // stringstream class check1
+    stringstream check1(line);
      
-//     string intermediate;
+    string intermediate;
 
-//     unordered_map<string,int> temp;
+    unordered_map<char,int> temp;
      
-//     // Tokenizing w.r.t. space ' '
-//     while(getline(check1, intermediate, ' '))
-//     {
-//         temp[intermediate] += 1;
-//     }
-//     transform(// execution::par,
-// 	    input.begin(), input.end(), 
-// 	    mapperOut.begin(),   
-// 	    mapper);
+    // // Tokenizing w.r.t. space ' '
+    // while(getline(check1, intermediate, ' '))
+    // {
+    //     temp[intermediate] += 1;
+    // }
 
-//     for(auto item : temp)
-//     {
-//         mtx.lock();
-//         mapper[item.first] += item.second;
-//         mtx.unlock();
-//     }
-// }
+    for(char c : line)
+    {
+        temp[c] += 1;
+    }
+
+    for(auto item : temp)
+    {
+        mtx.lock();
+        mapper[item.first] += item.second;
+        mtx.unlock();
+    }
+}
 
 string encoding_text(string text, unordered_map<string, string> encoding)
 {
@@ -128,20 +129,52 @@ string encoding_text(string text, unordered_map<string, string> encoding)
 // Builds Huffman Tree and decode given input text
 void buildHuffmanTree(string text)
 {
-    unordered_map<char, int> map;
-    int nw = 4;
-    long usecs; 
+    ThreadPool pool(64);
+    fstream readFile;
+    ofstream writeFile("compressed_text.txt");
+    int character_num = 0;
+    long usec;
     {
-        utimer t0("Reading file and compute statistics ",&usecs); 
-        auto e = emitter("texttest.txt", nw, &map);
-        auto c = collector(); 
-        // cout << "---> " << workers.size() << endl; 
-        ff::ff_Farm<TASK> mf(worker, nw);
-        mf.add_emitter(e);
-        mf.add_collector(c);
-        mf.run_and_wait_end();
-    }
+        utimer t0("General Time: ", &usec);
 
+        readFile.open(text, ios::in);
+        // count frequency of appearance of each character
+        // and store it in a map
+        unordered_map<char, int> mapper;
+        vector<future<void>> tasks;
+        {
+            utimer t1("Reading Characters Time:");
+            pool.init();
+
+            string line;
+            string t = "";
+            int i = 0;
+
+            readFile.seekg(0, ios_base::end);
+            int lenght = readFile.tellg();
+
+            readFile.seekg(0);
+            int interval = lenght/64;
+
+            while(!readFile.eof())
+            {
+                getline(readFile, line);
+                t += line;
+                if(t.length() > interval || readFile.eof())
+                {
+                    //submit the task to the threadpool
+                    tasks.push_back(pool.submit(map_line, t, ref(mapper), ref(character_num)));
+                    t = "";
+                }
+            }
+            
+            for(auto& task : tasks)
+            {
+                task.get();
+            }
+
+            readFile.close();
+        }
         
         // Create a priority queue to store live nodes of
         // Huffman tree;
@@ -153,7 +186,7 @@ void buildHuffmanTree(string text)
         long usec_create_nodes;
         {
             utimer t0("Creating nodes time: ", &usec_create_nodes);
-            for (auto pair: map) 
+            for (auto pair: mapper) 
             {
                 leaf_nodes.push(getNode(pair.first, pair.second, nullptr, nullptr));
             }
@@ -179,7 +212,7 @@ void buildHuffmanTree(string text)
                 leaf_nodes.push(getNode('\0', sum, left, right));
             }
         }
-        //root stores pointer to root of Huffman Tree
+        // root stores pointer to root of Huffman Tree
         Node* root = leaf_nodes.top();
 
         unordered_map<string, string> huffmanCode;
@@ -192,18 +225,41 @@ void buildHuffmanTree(string text)
             encode(root, "", huffmanCode);
         }
 
-        // readFile.clear();
-        // readFile.open(text, ios::in);
-        vector<string> encoded_text;
+        readFile.clear();
+        readFile.open(text, ios::in);
+        string str="";
+        vector<future<string>> encoding_tasks;
         long utime_encode_text;
         {
-            auto e = emitter("texttest.txt", nw, &encoded_text, huffmanCode);
-            auto c = collector();
-            // cout << "---> " << workers.size() << endl; 
-            ff::ff_Farm<TASK> mf(worker, nw);
-            mf.add_emitter(e);
-            mf.add_collector(c);
-            mf.run_and_wait_end();
+            utimer t0("Encode text time", &utime_encode_text);
+            readFile.seekg(0, ios_base::end);
+            int lenght = readFile.tellg();
+
+            readFile.seekg(0);
+            int interval = lenght/64;
+            string line;
+            string t = "";
+            while(!readFile.eof())
+            {
+                getline(readFile, line);
+                t += line;
+                if(t.length() > interval || readFile.eof())
+                {
+                    encoding_tasks.push_back(pool.submit(encoding_text, t, huffmanCode));
+                    t = "";
+                }
+            }
+
+            //encoding_tasks.push_back(pool.submit(encoding_text, t, huffmanCode));
+
+            for(auto& task : encoding_tasks)
+            {
+                const string enc = task.get();
+                writeFile << enc;
+                str += enc;
+            }
+
+            pool.shutdown();
         }
 
         // traverse the Huffman Tree again and this time
@@ -214,26 +270,11 @@ void buildHuffmanTree(string text)
         // {
         //     decode(root, index, str);
         // }
-        // long a;
-        // {
-        //     utimer t0("read test: ", &a);
-        //     readFile.clear();
-        //     readFile.open(text, ios::in);
-        //     vector<char> characters;
-        //     while(!readFile.eof())
-        //     {
-        //         getline(readFile, line);
-        //         for(char c : line)
-        //         {
-        //             characters.push_back(c);
-        //         }
-        //     }
-        // }
-    
+    }
 }
 
 // Huffman coding algorithm
-int main(int argc, char * argv[])
+int main()
 {
 	string text_path = "texttest.txt";
 

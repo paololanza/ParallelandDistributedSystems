@@ -142,7 +142,7 @@ void buildHuffmanTree(string text)
 
         //cout << "Huffman Codes are :\n" << '\n';
         for (auto pair: huffmanCode) {
-            //cout << pair.first << " " << pair.second << '\n';
+            cout << pair.first << " " << pair.second << '\n';
         }
 
         //cout << "\nOriginal string was :\n" << text << '\n';
