@@ -9,8 +9,8 @@
 
 #include "MapFarm.cpp"
 #include "EncodeFarm.cpp"
-#include "./utils/Huffman.cpp"
-#include "./utils/utimer.hpp"
+#include "../utils/Huffman.cpp"
+#include "../utils/utimer.hpp"
 
 using namespace std;
 using namespace ff;
@@ -23,9 +23,8 @@ void buildHuffmanTree(string text)
     long usecs; 
     {
         utimer t0("Reading file and statistics",&usecs); 
-        auto e = mp::emitter("texttest.txt", nw, &mapper);
+        auto e = mp::emitter("../texttest.txt", nw, &mapper);
         auto c = mp::collector(); 
-        // cout << "---> " << workers.size() << endl; 
         ff::ff_Farm<mp::TASK> mf(mp::worker, nw);
         mf.add_emitter(e);
         mf.add_collector(c);
@@ -42,7 +41,7 @@ void buildHuffmanTree(string text)
     long utime_encode_text;
     {
         utimer t1("Encoding text");
-        auto e = enc::emitter("texttest.txt", nw, &encoded_text, huffmanCode);
+        auto e = enc::emitter("../texttest.txt", nw, &encoded_text, huffmanCode);
         auto c = enc::collector();
         // cout << "---> " << workers.size() << endl; 
         ff::ff_Farm<enc::TASK> emf(enc::worker, nw);
@@ -52,24 +51,22 @@ void buildHuffmanTree(string text)
     }
 
     ofstream writeFile("compressed_text.txt");
+    string encodedText;
     for(auto s : encoded_text)
+    {
         writeFile << s; 
+        encodedText += s;
+    }
 
     // traverse the Huffman Tree again and this time
     // decode the encoded string
-    // int index = -1;
-    // cout << "\nDecoded string is: \n";
-    // while (index < (int)str.size() - 2) 
-    // {
-    //     decode(root, index, str);
-    // }
-    
+    decodeText(encodedText);
 }
 
 // Huffman coding algorithm
 int main(int argc, char * argv[])
 {
-	string text_path = "./texttest.txt";
+	string text_path = "/home/p.lanza1/SPM/texttest.txt";
 
 	buildHuffmanTree(text_path);
 
