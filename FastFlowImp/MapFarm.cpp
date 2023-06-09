@@ -5,9 +5,8 @@
 #include <cstring>
 #include <unistd.h>
 #include <mutex>
-//#include "utimer.hpp"
 
-#include <ff/ff.hpp>		// change 1: include fastflow library code
+#include <ff/ff.hpp>
 
 bool pf = false; 
 

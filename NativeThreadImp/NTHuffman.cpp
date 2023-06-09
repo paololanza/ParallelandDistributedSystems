@@ -142,7 +142,7 @@ void buildHuffmanTree(string text)
 
 int main()
 {
-	string text_path = "texttest.txt";
+	string text_path = "./texttest.txt";
 
 	buildHuffmanTree(text_path);
 

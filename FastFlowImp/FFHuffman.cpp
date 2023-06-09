@@ -7,10 +7,10 @@
 #include <future>
 #include <vector>
 
-#include "utimer.hpp"
 #include "MapFarm.cpp"
 #include "EncodeFarm.cpp"
-#include "Huffman.cpp"
+#include "./utils/Huffman.cpp"
+#include "./utils/utimer.hpp"
 
 using namespace std;
 using namespace ff;
@@ -69,7 +69,7 @@ void buildHuffmanTree(string text)
 // Huffman coding algorithm
 int main(int argc, char * argv[])
 {
-	string text_path = "texttest.txt";
+	string text_path = "./texttest.txt";
 
 	buildHuffmanTree(text_path);
 
