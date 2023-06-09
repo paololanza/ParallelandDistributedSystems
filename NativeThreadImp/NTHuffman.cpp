@@ -140,7 +140,6 @@ void buildHuffmanTree(string text)
     
 }
 
-// Huffman coding algorithm
 int main()
 {
 	string text_path = "texttest.txt";
