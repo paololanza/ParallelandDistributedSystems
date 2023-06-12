@@ -4,13 +4,13 @@
 #include <unordered_map>
 #include <fstream>
 
-#include "utils/utimer.hpp"
-#include "utils/Huffman.cpp"
+#include "../utils/utimer.hpp"
+#include "../utils/Huffman.cpp"
 
 using namespace std;
 
 // Builds Huffman Tree and decode given input text
-void buildHuffmanTree(string pathfile)
+void SeqHuffmanEncoding(string pathfile)
 {
     long usec;
     {
@@ -81,11 +81,11 @@ void buildHuffmanTree(string pathfile)
 }
 
 // Huffman coding algorithm
-int main()
-{
-	string text_path = "texttest.txt";
+// int main()
+// {
+// 	string text_path = "texttest.txt";
 
-	buildHuffmanTree(text_path);
+// 	buildHuffmanTree(text_path);
 
-	return 0;
-}
+// 	return 0;
+// }

@@ -9,6 +9,7 @@
 
 #include "MapFarm.cpp"
 #include "EncodeFarm.cpp"
+#ifndef "Huffman.cpp"
 #include "../utils/Huffman.cpp"
 #include "../utils/utimer.hpp"
 
@@ -16,11 +17,10 @@ using namespace std;
 using namespace ff;
 
 // Builds Huffman Tree and decode given input text
-void buildHuffmanTree(string text)
+void FFHuffmanEncoding(string text, int nw)
 {
     utimer t3("Total computation");
     unordered_map<char, int> mapper;
-    int nw = 4;
     long usecs; 
     {
         utimer t0("Reading file and statistics",&usecs); 
@@ -65,11 +65,11 @@ void buildHuffmanTree(string text)
 }
 
 // Huffman coding algorithm
-int main(int argc, char * argv[])
-{
-	string text_path = "/home/p.lanza1/SPM/texttest.txt";
+// int main(int argc, char * argv[])
+// {
+// 	string text_path = "/home/p.lanza1/SPM/texttest.txt";
 
-	buildHuffmanTree(text_path);
+// 	buildHuffmanTree(text_path);
 
-	return 0;
-}
+// 	return 0;
+// }

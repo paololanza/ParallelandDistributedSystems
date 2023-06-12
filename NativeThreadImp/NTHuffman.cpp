@@ -7,9 +7,13 @@
 #include <future>
 #include <mutex>
 
-#include "utimer.hpp"
-#include "../ThreadPool/ThreadPool.hpp"
-#include "Huffman.cpp"
+#ifndef "utimer.hpp"
+#include "../utils/utimer.hpp"
+#endif
+#ifndef "Huffman.cpp"
+#include "../utils/Huffman.cpp"
+#endif
+#include "ThreadPool/ThreadPool.hpp"
 
 using namespace std;
 
@@ -52,9 +56,9 @@ string encoding_text(string text, unordered_map<char, string> encoding)
 }
 
 // Builds Huffman Tree and decode given input text
-void buildHuffmanTree(string text)
+void NTHuffmanEncoding(string text, int nw)
 {
-    ThreadPool pool(64);
+    ThreadPool pool(nw);
     fstream readFile;
     ofstream writeFile("compressed_text.txt");
     int character_num = 0;
@@ -140,11 +144,11 @@ void buildHuffmanTree(string text)
     
 }
 
-int main()
-{
-	string text_path = "../texttest.txt";
+// int main()
+// {
+// 	string text_path = "../texttest.txt";
 
-	buildHuffmanTree(text_path);
+// 	buildHuffmanTree(text_path);
 
-	return 0;
-}
+// 	return 0;
+// }
