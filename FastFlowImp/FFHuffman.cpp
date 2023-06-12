@@ -18,6 +18,7 @@ using namespace ff;
 // Builds Huffman Tree and decode given input text
 void buildHuffmanTree(string text)
 {
+    utimer t3("Total computation");
     unordered_map<char, int> mapper;
     int nw = 4;
     long usecs; 
@@ -50,17 +51,17 @@ void buildHuffmanTree(string text)
         emf.run_and_wait_end();
     }
 
-    ofstream writeFile("compressed_text.txt");
-    string encodedText;
-    for(auto s : encoded_text)
-    {
-        writeFile << s; 
-        encodedText += s;
-    }
+    // ofstream writeFile("compressed_text.txt");
+    // string encodedText;
+    // for(auto s : encoded_text)
+    // {
+    //     writeFile << s; 
+    //     encodedText += s;
+    // }
 
     // traverse the Huffman Tree again and this time
     // decode the encoded string
-    decodeText(encodedText);
+    //decodeText(encodedText);
 }
 
 // Huffman coding algorithm

@@ -8,7 +8,7 @@
 #include <mutex>
 
 #include "utimer.hpp"
-#include "./ThreadPool/ThreadPool.hpp"
+#include "../ThreadPool/ThreadPool.hpp"
 #include "Huffman.cpp"
 
 using namespace std;
@@ -142,7 +142,7 @@ void buildHuffmanTree(string text)
 
 int main()
 {
-	string text_path = "./texttest.txt";
+	string text_path = "../texttest.txt";
 
 	buildHuffmanTree(text_path);
 

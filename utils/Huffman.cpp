@@ -14,6 +14,8 @@ struct Node
 	Node *left, *right;
 };
 
+Node* root;
+
 // Function to allocate a new tree node
 Node* getNode(char ch, int freq, Node* left, Node* right)
 {
@@ -108,7 +110,7 @@ unordered_map<char,string> buildHuffmanEncoding(unordered_map<char, int> mapper)
     }
         
     // root stores pointer to root of Huffman Tree
-    Node* root = nodes.top();
+    root = nodes.top();
 
     unordered_map<char, string> huffmanCode;
 
@@ -117,4 +119,17 @@ unordered_map<char,string> buildHuffmanEncoding(unordered_map<char, int> mapper)
     encode(root, "", huffmanCode);
 
     return huffmanCode;
+}
+
+
+void decodeText(string text)
+{
+	// traverse the Huffman Tree again and this time
+	// decode the encoded string
+	int index = -1;
+	cout << "\nDecoded string is: \n";
+	while (index < (int)text.size() - 2) 
+	{
+		decode(root, index, text);
+	}
 }
