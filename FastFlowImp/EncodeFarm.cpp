@@ -18,7 +18,7 @@ namespace enc
 
     typedef struct __task {
     string text;
-    vector<string>* encoded_text;
+    string encoded_text;
     unordered_map<char, string> huffman_encoding;
     int id;
     } TASK; 
@@ -27,11 +27,11 @@ namespace enc
     private: 
         string pathfile;
         int nw;
-        vector<string>* encoded_text;
+        string encoded_text;
         unordered_map<char, string> huffman_encoding;
     public:
-        emitter(string pathfile, int nw, vector<string>* encoded_text, unordered_map<char,string> huffman_encoding)
-                :pathfile(pathfile),nw(nw),encoded_text(encoded_text),huffman_encoding(huffman_encoding){}
+        emitter(string pathfile, int nw, unordered_map<char,string> huffman_encoding)
+                :pathfile(pathfile),nw(nw),huffman_encoding(huffman_encoding){}
 
         TASK * svc(TASK *) 
         {
@@ -43,7 +43,7 @@ namespace enc
             int lenght = readFile.tellg();
 
             readFile.seekg(0);
-            total_task = nw * 2;
+            total_task = nw;
             int interval = lenght/total_task;
             int id = 0;
 
@@ -54,7 +54,7 @@ namespace enc
                 if(text.length() > interval || readFile.eof())
                 {
                     //
-                    auto t = new TASK(text, encoded_text, huffman_encoding, id);
+                    auto t = new TASK(text, "", huffman_encoding, id);
                     ff_send_out(t);
                     text = "";
                     id++;
@@ -67,9 +67,16 @@ namespace enc
     class collector : public ff::ff_node_t<TASK> {
     private: 
     TASK * tt;
+    vector<string>* encoded_vector;
+    ofstream* out_stream;
 
     public: 
+    collector(vector<string>* encoded_vector, ofstream* out_stream):encoded_vector(encoded_vector), out_stream(out_stream){}
+
     TASK * svc(TASK * t) {     
+        auto id = t->id;
+        auto text = t->encoded_text;
+        (*out_stream) << text;
         free(t);
         return(GO_ON);
     }
@@ -78,7 +85,7 @@ namespace enc
 
     TASK *  worker(TASK * t, ff::ff_node* nn) {
         auto text = t->text; 
-        auto encoded_text = t->encoded_text; 
+        //auto encoded_text = t->encoded_text; 
         auto huffman_encoding = t->huffman_encoding;
         auto id = t->id;
         string enc;
@@ -86,7 +93,8 @@ namespace enc
         {         
             enc += huffman_encoding[c];
         }
-        (*encoded_text)[id] = enc;
+        //(*encoded_text)[id] = enc;
+        t->encoded_text = enc;
         return t;
     }
 }

@@ -9,22 +9,22 @@
 
 #include "MapFarm.cpp"
 #include "EncodeFarm.cpp"
-#ifndef "Huffman.cpp"
 #include "../utils/Huffman.cpp"
 #include "../utils/utimer.hpp"
 
 using namespace std;
 using namespace ff;
 
+long usecs, seq_time;
+
 // Builds Huffman Tree and decode given input text
 void FFHuffmanEncoding(string text, int nw)
 {
-    utimer t3("Total computation");
+    utimer t3("Total computation", &usecs);
     unordered_map<char, int> mapper;
-    long usecs; 
     {
-        utimer t0("Reading file and statistics",&usecs); 
-        auto e = mp::emitter("../texttest.txt", nw, &mapper);
+        utimer t0("Reading file and compute statistics"); 
+        auto e = mp::emitter(text, nw, &mapper);
         auto c = mp::collector(); 
         ff::ff_Farm<mp::TASK> mf(mp::worker, nw);
         mf.add_emitter(e);
@@ -38,18 +38,27 @@ void FFHuffmanEncoding(string text, int nw)
         huffmanCode = buildHuffmanEncoding(mapper);
     }
     
-    vector<string> encoded_text(nw*3);
+    vector<string> encoded_text(nw*2);
+    ofstream writeFile("compressed_text.txt");
     long utime_encode_text;
     {
         utimer t1("Encoding text");
-        auto e = enc::emitter("../texttest.txt", nw, &encoded_text, huffmanCode);
-        auto c = enc::collector();
+        auto e = enc::emitter(text, nw, huffmanCode);
+        auto c = enc::collector(&encoded_text, &writeFile);
         // cout << "---> " << workers.size() << endl; 
-        ff::ff_Farm<enc::TASK> emf(enc::worker, nw);
+        ff::ff_OFarm<enc::TASK> emf(enc::worker, nw);
         emf.add_emitter(e);
         emf.add_collector(c);
         emf.run_and_wait_end();
     }
+
+    // ofstream writeFile("compressed_text.txt");
+    // for(auto s : encoded_text)
+    //     writeFile << s;
+
+
+
+
 
     // ofstream writeFile("compressed_text.txt");
     // string encodedText;
@@ -64,12 +73,21 @@ void FFHuffmanEncoding(string text, int nw)
     //decodeText(encodedText);
 }
 
-// Huffman coding algorithm
-// int main(int argc, char * argv[])
-// {
-// 	string text_path = "/home/p.lanza1/SPM/texttest.txt";
-
-// 	buildHuffmanTree(text_path);
-
-// 	return 0;
-// }
+int main(int argc, char * argv[])
+{
+    int i = 1;
+    for(i; i <= 64; i=i*2)
+    {
+        cout << "--------------------------------------------------------------------------" <<endl;
+        cout << "Computing Fast Flow Huffman implementation with " << i << " threads:" << endl;
+        FFHuffmanEncoding("../test.txt", i);
+        if(i == 1) 
+        {
+            seq_time = usecs;
+        }
+        cout << endl;
+        float speedup = (float)seq_time/(float)usecs;
+        cout << "SPEEDUP(" << i << ") = " << speedup << endl;
+        cout << "EFFICIENCY(" << i << ") = " << speedup/i << endl;
+    }
+}
