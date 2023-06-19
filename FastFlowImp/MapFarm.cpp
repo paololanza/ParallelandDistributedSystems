@@ -18,16 +18,15 @@ namespace mp
 
   typedef struct __task {
     string text;
-    unordered_map<char, int>* map;
+    unordered_map<char, int> map;
   } TASK; 
 
   class emitter : public ff::ff_monode_t<TASK> {
   private: 
       string pathfile;
       int nw;
-      unordered_map<char, int>* map;
   public:
-    emitter(string pathfile, int nw, unordered_map<char,int>* map):pathfile(pathfile),nw(nw),map(map){}
+    emitter(string pathfile, int nw):pathfile(pathfile),nw(nw){}
 
     TASK * svc(TASK *) 
       {
@@ -39,7 +38,9 @@ namespace mp
           int lenght = readFile.tellg();
 
           readFile.seekg(0);
-          int interval = lenght/64;
+          int interval = lenght/nw;
+          int i;
+          unordered_map<char,int> map;
 
           while(!readFile.eof())
           {
@@ -47,10 +48,11 @@ namespace mp
               text += line;
               if(text.length() > interval || readFile.eof())
               {
-                  //submit the task to the threadpool
+                  //
                   auto t = new TASK(text, map);
                   ff_send_out(t);
                   text = "";
+                  i++;
               }
           }
           return(EOS);
@@ -60,9 +62,17 @@ namespace mp
   class collector : public ff::ff_node_t<TASK> {
   private: 
     TASK * tt;
+    unordered_map<char,int>* map;
 
   public: 
+    collector(unordered_map<char,int>* map):map(map){}
+
     TASK * svc(TASK * t) {
+      auto temp = t->map;
+      for(auto item : temp)
+      {
+        (*map)[item.first] += item.second;
+      }
       free(t);
       return(GO_ON);
     }
@@ -75,14 +85,14 @@ namespace mp
       unordered_map<char, int> temp_map;
       for(char c : text) 
       {
-          temp_map[c] += 1;
+          (t->map)[c] += 1;
       }
-      for(auto item : temp_map)
-      {
-        mtx.lock();
-        (*occ)[item.first] += item.second;
-        mtx.unlock();
-      }
+      // for(auto item : temp_map)
+      // {
+      //   mtx.lock();
+      //   (*occ)[item.first] += item.second;
+      //   mtx.unlock();
+      // }
       return t;
     }
 }

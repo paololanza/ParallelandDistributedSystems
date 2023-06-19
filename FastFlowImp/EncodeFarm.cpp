@@ -43,7 +43,8 @@ namespace enc
             int lenght = readFile.tellg();
 
             readFile.seekg(0);
-            total_task = nw;
+            int load_balancing = 0;
+            total_task = nw + (nw * load_balancing)/ 100;
             int interval = lenght/total_task;
             int id = 0;
 
@@ -58,6 +59,8 @@ namespace enc
                     ff_send_out(t);
                     text = "";
                     id++;
+                    if (id == nw || id == nw + (nw*load_balancing)/100)
+                        interval = interval / 2;
                 }
             }
             return(EOS);

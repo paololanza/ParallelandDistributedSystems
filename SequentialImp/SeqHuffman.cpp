@@ -83,16 +83,16 @@ void SeqHuffmanEncoding(string pathfile)
 // Huffman coding algorithm
 int main()
 {
-	string text_path = "../text.txt";
+	string text_path = "../test.txt";
 
 	SeqHuffmanEncoding(text_path);
 
-    float perc = (((float)usec_compute_statistics + (float)usec_encode_text)/(float)usec);
+    float perc = (((float)usec_compute_statistics + (float)usec_encode_text + (float)usec_reading_ch)/(float)usec);
     float ems = (1/(1 - perc));
     cout << "-----------------------------------------------" << endl;
     cout << "--               Amdahl's Law                --" << endl;
     cout << "-----------------------------------------------" << endl;
-    cout << "- Parallelizable time: " << usec_compute_statistics + usec_encode_text <<  endl;
+    cout << "- Parallelizable time: " << usec_compute_statistics + usec_encode_text + usec_reading_ch <<  endl;
     cout << "- % Parallelizable code: " << perc << "%" <<  endl;
     cout << "- Total time: " << usec << endl << endl;
     cout << "Estimated Max Speedup: 1/(1-" << perc << ") = " << ems << endl;

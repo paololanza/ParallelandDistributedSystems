@@ -24,8 +24,8 @@ void FFHuffmanEncoding(string text, int nw)
     unordered_map<char, int> mapper;
     {
         utimer t0("Reading file and compute statistics"); 
-        auto e = mp::emitter(text, nw, &mapper);
-        auto c = mp::collector(); 
+        auto e = mp::emitter(text, nw);
+        auto c = mp::collector(&mapper); 
         ff::ff_Farm<mp::TASK> mf(mp::worker, nw);
         mf.add_emitter(e);
         mf.add_collector(c);
