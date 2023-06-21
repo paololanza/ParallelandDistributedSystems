@@ -18,11 +18,13 @@ using namespace ff;
 
 long usecs, seq_time;
 
+string res;
+
 void decodeCompressedText()
 {
     //decode the string
     string decompressed_string;
-    for(char c : res.substr(0,100000))
+    for(char c : res.substr(0,1000))
     {
         bitset<8> binary(c);
         decompressed_string += binary.to_string();
@@ -59,7 +61,6 @@ void FFHuffmanEncoding(string text, int nw)
         utimer t1("Encoding text");
         auto e = enc::emitter(text, nw, huffmanCode);
         auto c = enc::collector(&encoded_text, &writeFile);
-        // cout << "---> " << workers.size() << endl; 
         ff::ff_OFarm<enc::TASK> emf(enc::worker, nw);
         emf.add_emitter(e);
         emf.add_collector(c);
@@ -70,32 +71,12 @@ void FFHuffmanEncoding(string text, int nw)
     {
         utimer t1("Compressing text");
         auto e = compression::emitter(encoded_text, nw);
-        auto c = compression::collector(&writeFile);
-        ff::ff_OFarm<compression::TASK> emf(compression::worker, nw);
-        emf.add_emitter(e);
-        emf.add_collector(c);
-        emf.run_and_wait_end();
+        auto c = compression::collector(&writeFile, &res);
+        ff::ff_OFarm<compression::TASK> cf(compression::worker, nw);
+        cf.add_emitter(e);
+        cf.add_collector(c);
+        cf.run_and_wait_end();
     }
-
-    // ofstream writeFile("compressed_text.txt");
-    // for(auto s : encoded_text)
-    //     writeFile << s;
-
-
-
-
-
-    // ofstream writeFile("compressed_text.txt");
-    // string encodedText;
-    // for(auto s : encoded_text)
-    // {
-    //     writeFile << s; 
-    //     encodedText += s;
-    // }
-
-    // traverse the Huffman Tree again and this time
-    // decode the encoded string
-    //decodeText(encodedText);
 }
 
 int main(int argc, char * argv[])

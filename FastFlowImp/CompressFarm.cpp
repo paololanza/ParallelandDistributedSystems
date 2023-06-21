@@ -50,14 +50,16 @@ namespace compression
     private: 
         TASK * tt;
         ofstream* out_stream;
+        string* res;
 
     public: 
-        collector(ofstream* out_stream):out_stream(out_stream){}
+        collector(ofstream* out_stream, string* res):out_stream(out_stream),res(res){}
 
     TASK * svc(TASK * t) 
     {
         auto comp_text = t->compressed_text;
         (*out_stream) << comp_text;
+        (*res) += comp_text;
         free(t);
         return(GO_ON);
     }
@@ -69,12 +71,9 @@ namespace compression
         string asciiString;
         for (size_t i = 0; i < text.length(); i += 8) 
         {
-            string byte = text.substr(i, 8); 
-            bitset<8> bits(byte);
-            char asciiChar = static_cast<char>(bits.to_ulong()); 
-            asciiString += asciiChar;
+            bitset<8> bits(text.substr(i, 8));
+            t->compressed_text += static_cast<char>(bits.to_ulong()); 
         }
-        t->compressed_text = asciiString;
         return t;
     }
 };

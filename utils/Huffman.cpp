@@ -3,6 +3,7 @@
 #include <queue>
 #include <unordered_map>
 #include <map>
+#include <atomic>
 
 using namespace std;
 
@@ -87,7 +88,7 @@ unordered_map<char,string> buildHuffmanEncoding(unordered_map<char, int> mapper)
 
     // Create a leaf node for each character and add it
     // to the priority queue.
-    for (auto pair: mapper) 
+    for (const auto& pair : mapper) 
     {
         nodes.push(getNode(pair.first, pair.second, nullptr, nullptr));
     }

@@ -91,13 +91,10 @@ namespace enc
         //auto encoded_text = t->encoded_text; 
         auto huffman_encoding = t->huffman_encoding;
         auto id = t->id;
-        string enc;
         for(char c : text)
         {         
-            enc += huffman_encoding[c];
+            t->encoded_text += huffman_encoding[c];
         }
-        //(*encoded_text)[id] = enc;
-        t->encoded_text = enc;
         return t;
     }
 }
