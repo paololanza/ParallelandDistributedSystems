@@ -7,6 +7,7 @@
 #include <future>
 #include <vector>
 
+#include "CompressFarm.cpp"
 #include "MapFarm.cpp"
 #include "EncodeFarm.cpp"
 #include "../utils/Huffman.cpp"
@@ -16,6 +17,19 @@ using namespace std;
 using namespace ff;
 
 long usecs, seq_time;
+
+void decodeCompressedText()
+{
+    //decode the string
+    string decompressed_string;
+    for(char c : res.substr(0,100000))
+    {
+        bitset<8> binary(c);
+        decompressed_string += binary.to_string();
+    }
+
+    decodeText(decompressed_string);
+}
 
 // Builds Huffman Tree and decode given input text
 void FFHuffmanEncoding(string text, int nw)
@@ -38,7 +52,7 @@ void FFHuffmanEncoding(string text, int nw)
         huffmanCode = buildHuffmanEncoding(mapper);
     }
     
-    vector<string> encoded_text(nw*2);
+    string encoded_text;
     ofstream writeFile("compressed_text.txt");
     long utime_encode_text;
     {
@@ -47,6 +61,17 @@ void FFHuffmanEncoding(string text, int nw)
         auto c = enc::collector(&encoded_text, &writeFile);
         // cout << "---> " << workers.size() << endl; 
         ff::ff_OFarm<enc::TASK> emf(enc::worker, nw);
+        emf.add_emitter(e);
+        emf.add_collector(c);
+        emf.run_and_wait_end();
+    }
+
+    long utime_compress_text;
+    {
+        utimer t1("Compressing text");
+        auto e = compression::emitter(encoded_text, nw);
+        auto c = compression::collector(&writeFile);
+        ff::ff_OFarm<compression::TASK> emf(compression::worker, nw);
         emf.add_emitter(e);
         emf.add_collector(c);
         emf.run_and_wait_end();
@@ -90,4 +115,6 @@ int main(int argc, char * argv[])
         cout << "SPEEDUP(" << i << ") = " << speedup << endl;
         cout << "EFFICIENCY(" << i << ") = " << speedup/i << endl;
     }
+
+    decodeCompressedText();
 }

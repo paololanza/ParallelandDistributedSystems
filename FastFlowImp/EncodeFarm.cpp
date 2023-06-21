@@ -70,16 +70,16 @@ namespace enc
     class collector : public ff::ff_node_t<TASK> {
     private: 
     TASK * tt;
-    vector<string>* encoded_vector;
+    string* encoded_text;
     ofstream* out_stream;
 
     public: 
-    collector(vector<string>* encoded_vector, ofstream* out_stream):encoded_vector(encoded_vector), out_stream(out_stream){}
+    collector(string* encoded_text, ofstream* out_stream):encoded_text(encoded_text), out_stream(out_stream){}
 
     TASK * svc(TASK * t) {     
         auto id = t->id;
         auto text = t->encoded_text;
-        (*out_stream) << text;
+        *encoded_text += text;
         free(t);
         return(GO_ON);
     }

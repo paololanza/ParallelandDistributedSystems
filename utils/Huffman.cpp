@@ -57,7 +57,7 @@ void encode(Node* root, string str,
 }
 
 // traverse the Huffman Tree and decode the encoded string
-void decode(Node* root, int &index, string str)
+void decode(Node* root, int &index, string str, ofstream* writeFile)
 {
 	if (root == nullptr) {
 		return;
@@ -66,16 +66,16 @@ void decode(Node* root, int &index, string str)
 	// found a leaf node
 	if (!root->left && !root->right)
 	{
-		cout << root->ch;
+		*writeFile << (root->ch);
 		return;
 	}
 
 	index++;
 
 	if (str[index] =='0')
-		decode(root->left, index, str);
+		decode(root->left, index, str, writeFile);
 	else
-		decode(root->right, index, str);
+		decode(root->right, index, str, writeFile);
 }
 
 // Builds Huffman Tree and return a map that contains a characters with its encoding
@@ -127,9 +127,9 @@ void decodeText(string text)
 	// traverse the Huffman Tree again and this time
 	// decode the encoded string
 	int index = -1;
-	cout << "\nDecoded string is: \n";
+	ofstream writeFile("decompressed_text.txt");
 	while (index < (int)text.size() - 2) 
 	{
-		decode(root, index, text);
+		decode(root, index, text, &writeFile);
 	}
 }

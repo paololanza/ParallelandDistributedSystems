@@ -19,6 +19,7 @@ using namespace std;
 mutex mtx;
 
 long usecs, seq_time;
+string res;
 
 unordered_map<char,int> map_line(string line, unordered_map<char,int>& mapper)
 {
@@ -79,6 +80,19 @@ string compress_byte(string text)
         asciiString += asciiChar;
     }
     return asciiString;
+}
+
+void decodeCompressedText()
+{
+    //decode the string
+    string decompressed_string;
+    for(char c : res.substr(0,100000))
+    {
+        bitset<8> binary(c);
+        decompressed_string += binary.to_string();
+    }
+
+    decodeText(decompressed_string);
 }
 
 //template<typename T>
@@ -203,6 +217,7 @@ auto NTHuffmanEncoding(string text, int nw)
         {
             const string enc = compress_tasks[i].get();
             writeFile << enc;
+            res += enc;
         }
     }
 
@@ -237,4 +252,6 @@ int main()
         cout << "SPEEDUP(" << i << ") = " << speedup << endl;
         cout << "EFFICIENCY(" << i << ") = " << speedup/i << endl;
     }
+
+    decodeCompressedText();
 }

@@ -1,44 +1,26 @@
-PROJECT=foo
-SOURCES=bar.c baz.c
-LIBRARY=nope
-#INCPATHS=../some_other_project/
-#LIBPATHS=../yet_another_project/
-LDFLAGS=-ldosomething
-CFLAGS=-c -Wall
-CC=gcc
+CC  =  g++
+CFLAGS += -std=c++20 #-Wall -g 
+ARFLAGS         =  rvs
+INCLUDES	= -I.
+LDFLAGS 	= -L.
+OPTFLAGS	= -O3 
+LIBS            = -pthread
 
-# ------------ MAGIC BEGINS HERE -------------
+# aggiungere qui altri targets
+TARGETS		= Client		\
+		  ServerObject   
 
-# Automatic generation of some important lists
-OBJECTS=$(SOURCES:.c=.o)
-INCFLAGS=$(foreach TMP,$(INCPATHS),-I$(TMP))
-LIBFLAGS=$(foreach TMP,$(LIBPATHS),-L$(TMP))
+.PHONY: all clean cleanall
+.SUFFIXES: .c .h
 
-# Set up the output file names for the different output types
-ifeq "$(LIBRARY)" "shared"
-    BINARY=lib$(PROJECT).so
-    LDFLAGS += -shared
-else ifeq "$(LIBRARY)" "static"
-    BINARY=lib$(PROJECT).a
-else
-    BINARY=$(PROJECT)
-endif
+%: %.c
+	$(CC) $(CFLAGS) $(INCLUDES) $(OPTFLAGS) -o $@ $< $(LDFLAGS) $(LIBS)
 
-all: $(SOURCES) $(BINARY)
+%.o: %.c
+	$(CC) $(CFLAGS) $(INCLUDES) $(OPTFLAGS) -c -o $@ $<
 
-$(BINARY): $(OBJECTS)
-    # Link the object files, or archive into a static library
-    ifeq "$(LIBRARY)" "static"
-        ar rcs $(BINARY) $(OBJECTS)
-    else
-        $(CC) $(LIBFLAGS) $(OBJECTS) $(LDFLAGS) -o $@
-    endif
+all		: $(TARGETS)
 
-.c.o:
-        $(CC) $(INCFLAGS) $(CFLAGS) -fPIC $< -o $@
-
-distclean: clean
-        rm -f $(BINARY)
-
-clean:
-        rm -f $(OBJECTS)
+clean		: 
+	rm -f $(TARGETS)
+cleanall	: clean
