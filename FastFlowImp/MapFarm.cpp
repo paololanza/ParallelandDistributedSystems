@@ -18,43 +18,30 @@ namespace mp
 
   typedef struct __task {
     string text;
-    unordered_map<char, int> map;
+    unordered_map<char, int>* map;
+    int i;
+    int nw;
   } TASK; 
 
   class emitter : public ff::ff_monode_t<TASK> {
   private: 
-      string pathfile;
+      string full_text;
       int nw;
+      unordered_map<char,int>* mapper;
   public:
-    emitter(string pathfile, int nw):pathfile(pathfile),nw(nw){}
+    emitter(string full_text, int nw, unordered_map<char,int>* mapper):full_text(full_text),nw(nw),mapper(mapper){}
 
     TASK * svc(TASK *) 
       {
-          fstream readFile;
-          string line, text;
-
-          readFile.open(pathfile, ios::in);
-          readFile.seekg(0, ios_base::end);
-          int lenght = readFile.tellg();
-
-          readFile.seekg(0);
-          int interval = lenght/nw;
-          int i;
-          unordered_map<char,int> map;
-
-          while(!readFile.eof())
+          int start = 0;
+          int length = full_text.length();
+          int interval = length/nw;
+          for(int i = 0; i < nw; i++)
           {
-              getline(readFile, line);
-              text += line;
-              if(text.length() > interval || readFile.eof())
-              {
-                  //
-                  auto t = new TASK(text, map);
-                  ff_send_out(t);
-                  text = "";
-                  i++;
-              }
+            auto t = new TASK(full_text.substr(start, interval), mapper, i, nw);
+            ff_send_out(t);
           }
+
           return(EOS);
       }
   };
@@ -62,17 +49,11 @@ namespace mp
   class collector : public ff::ff_node_t<TASK> {
   private: 
     TASK * tt;
-    unordered_map<char,int>* map;
 
   public: 
-    collector(unordered_map<char,int>* map):map(map){}
+    collector(){}
 
     TASK * svc(TASK * t) {
-      auto temp = t->map;
-      for(auto item : temp)
-      {
-        (*map)[item.first] += item.second;
-      }
       free(t);
       return(GO_ON);
     }
@@ -81,18 +62,21 @@ namespace mp
 
   TASK *  worker(TASK * t, ff::ff_node* nn) {
       auto text = t->text; 
-      auto occ = t->map; 
+      auto occ = t->map;
+      auto nw = t->nw;
+      auto i = t->i;
       unordered_map<char, int> temp_map;
+
       for(char c : text) 
       {
-          (t->map)[c] += 1;
+          temp_map[c] += 1;
       }
-      // for(auto item : temp_map)
-      // {
-      //   mtx.lock();
-      //   (*occ)[item.first] += item.second;
-      //   mtx.unlock();
-      // }
+      for(auto item : temp_map)
+      {
+        mtx.lock();
+        (*occ)[item.first] += item.second;
+        mtx.unlock();
+      }
       return t;
     }
 }

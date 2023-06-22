@@ -18,30 +18,28 @@ using namespace ff;
 
 long usecs, seq_time;
 
-string res;
-
-void decodeCompressedText()
-{
-    //decode the string
-    string decompressed_string;
-    for(char c : res.substr(0,1000))
-    {
-        bitset<8> binary(c);
-        decompressed_string += binary.to_string();
-    }
-
-    decodeText(decompressed_string);
-}
-
-// Builds Huffman Tree and decode given input text
 void FFHuffmanEncoding(string text, int nw)
 {
     utimer t3("Total computation", &usecs);
     unordered_map<char, int> mapper;
+    string full_text, line;
+
+    fstream readFile;
+
+    readFile.open(text, ios::in);
     {
-        utimer t0("Reading file and compute statistics"); 
-        auto e = mp::emitter(text, nw);
-        auto c = mp::collector(&mapper); 
+        utimer t0("Reading input txt file");
+        while(!readFile.eof())
+        {
+            getline(readFile, line);
+            full_text += line;
+        }
+    }
+
+    {
+        utimer t0("Compute statistics"); 
+        auto e = mp::emitter(full_text, nw, &mapper);
+        auto c = mp::collector(); 
         ff::ff_Farm<mp::TASK> mf(mp::worker, nw);
         mf.add_emitter(e);
         mf.add_collector(c);
@@ -55,13 +53,15 @@ void FFHuffmanEncoding(string text, int nw)
     }
     
     string encoded_text;
+    vector<string> encoded_vector(nw);
+    vector<string> out_vector(nw);
     ofstream writeFile("compressed_text.txt");
     long utime_encode_text;
     {
         utimer t1("Encoding text");
-        auto e = enc::emitter(text, nw, huffmanCode);
-        auto c = enc::collector(&encoded_text, &writeFile);
-        ff::ff_OFarm<enc::TASK> emf(enc::worker, nw);
+        auto e = enc::emitter(full_text, nw, huffmanCode, &encoded_vector);
+        auto c = enc::collector();
+        ff::ff_Farm<enc::TASK> emf(enc::worker, nw);
         emf.add_emitter(e);
         emf.add_collector(c);
         emf.run_and_wait_end();
@@ -70,23 +70,33 @@ void FFHuffmanEncoding(string text, int nw)
     long utime_compress_text;
     {
         utimer t1("Compressing text");
-        auto e = compression::emitter(encoded_text, nw);
-        auto c = compression::collector(&writeFile, &res);
-        ff::ff_OFarm<compression::TASK> cf(compression::worker, nw);
+        auto e = compression::emitter(nw, encoded_vector, &out_vector);
+        auto c = compression::collector();
+        ff::ff_Farm<compression::TASK> cf(compression::worker, nw);
         cf.add_emitter(e);
         cf.add_collector(c);
         cf.run_and_wait_end();
+    }
+
+    long utime_write_text;
+    {
+        utimer t0("Write out file");
+        for(int i = 0; i < nw; i++)
+        {
+            writeFile << out_vector[i];
+        }
     }
 }
 
 int main(int argc, char * argv[])
 {
+    string text = (argc > 1 ? argv[1] : "../test.txt");
     int i = 1;
     for(i; i <= 64; i=i*2)
     {
         cout << "--------------------------------------------------------------------------" <<endl;
         cout << "Computing Fast Flow Huffman implementation with " << i << " threads:" << endl;
-        FFHuffmanEncoding("../test.txt", i);
+        FFHuffmanEncoding(text, i);
         if(i == 1) 
         {
             seq_time = usecs;
@@ -96,6 +106,4 @@ int main(int argc, char * argv[])
         cout << "SPEEDUP(" << i << ") = " << speedup << endl;
         cout << "EFFICIENCY(" << i << ") = " << speedup/i << endl;
     }
-
-    decodeCompressedText();
 }

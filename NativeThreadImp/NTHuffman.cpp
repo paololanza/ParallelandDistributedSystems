@@ -10,45 +10,21 @@
 #include <bitset>
 #include <atomic>
 
-
 #include "../utils/utimer.hpp"
 #include "../utils/Huffman.cpp"
 #include "ThreadPool/ThreadPool.hpp"
 
 using namespace std;
 
+long usecs, seq_time;
+
 mutex mtx;
 
-long usecs, seq_time;
-string res;
-
-// unordered_map<char,int> map_line(string line, unordered_map<char,int>& mapper)
-// {
-//     unordered_map<char,int> temp;
-
-//     for(char c : line)
-//     {
-//         temp[c] += 1;
-//     }
-
-//     for(auto item : temp)
-//     {
-//         mtx.lock();
-//         mapper[item.first].fetch_add(item.second);
-//         mtx.unlock();
-//     }
-
-//     return temp;
-// }
-
-void count_characters(string full_text, int i, int nw, unordered_map<char, int> &mapper)
+void count_characters(string text, unordered_map<char, int> &mapper)
 {
-    int interval = full_text.length()/nw;
-    int start = i * interval;
-
     unordered_map<char, int> temp_map;
 
-    for(char c : full_text.substr(start, interval))
+    for(char c : text)
     {
         temp_map[c] += 1;
     }
@@ -62,25 +38,11 @@ void count_characters(string full_text, int i, int nw, unordered_map<char, int> 
 
 }
 
-// string encoding_text(string text, unordered_map<char, string> encoding)
-// {
-//     // stringstream check1(text);
-//     // string intermediate;
-//     // string encoded_text = "";
-//     // for(char c : text)
-//     // {
-//     //     encoded_text += encoding[c];
-//     // }
-//     // return encoded_text;
-// }
-
-string encoding_text1(string full_text, unordered_map<char, string> encoding, int i, int nw)
+string encoding_text(string text, unordered_map<char, string> encoding)
 {
-    int interval = full_text.length()/nw;
-    int start = i * nw;
     string encoded_text = "";
     
-    for(char c : full_text.substr(start, interval))
+    for(char c : text)
     {
         encoded_text += encoding[c];
     }
@@ -101,20 +63,6 @@ string compress_byte(string text)
     return asciiString;
 }
 
-void decodeCompressedText()
-{
-    //decode the string
-    string decompressed_string;
-    for(char c : res.substr(0,100000))
-    {
-        bitset<8> binary(c);
-        decompressed_string += binary.to_string();
-    }
-
-    decodeText(decompressed_string);
-}
-
-//template<typename T>
 auto NTHuffmanEncoding(string text, int nw)
 {
     ThreadPool pool(nw);
@@ -130,22 +78,11 @@ auto NTHuffmanEncoding(string text, int nw)
 
     unordered_map<char, int> mapper;
     vector<future<void>> tasks;
-    vector<string> text_v;
     
     pool.init();
 
     string line;
-    string t = "";
     int i = 0;
-
-    readFile.seekg(0, ios_base::end);
-    int lenght = readFile.tellg();
-    cout << lenght;
-
-    readFile.seekg(0);
-    int load_balancing = 0;
-    int interval = lenght/(nw+(nw*load_balancing)/100);
-
     {
         utimer t0("Reading input txt file");
         while(!readFile.eof())
@@ -153,30 +90,19 @@ auto NTHuffmanEncoding(string text, int nw)
             getline(readFile, line);
             full_text += line;
         }
+        readFile.close();
     }
 
     {
         utimer t0("Computing Statistics");
-        // while(!readFile.eof())
-        // {
-        //     getline(readFile, line);
-        //     t += line;
-        //     //text_v.push_back(line);
-        
-        //     if(t.length() > interval || readFile.eof())
-        //     {
-        //         //submit the task to the threadpool
-        //         tasks.push_back(pool.submit(map_line, t, ref(mapper)));
-        //         //cout << t.length() << endl;
-        //         t = "";
-        //         i++;
-        //         if(i == nw || i == nw + ((nw*load_balancing)/100))
-        //             interval = interval/2;
-        //     }
-        // }
+        int start = 0;
+        int interval = full_text.length()/nw;
         for(int i = 0; i < nw; i++)
         {
-            tasks.push_back(pool.submit(count_characters, full_text, i, nw, ref(mapper)));
+            if(i == nw - 1)
+                interval = full_text.size() - start;
+            tasks.push_back(pool.submit(count_characters, full_text.substr(start, interval), ref(mapper)));
+            start += interval;
         }
 
         for(auto& task : tasks)
@@ -185,80 +111,77 @@ auto NTHuffmanEncoding(string text, int nw)
         }
     }
 
-    readFile.close();
-
-    auto huffmanCode = buildHuffmanEncoding(mapper);
-
-    readFile.clear();
-    readFile.open(text, ios::in);
-    string str="";
-    unordered_map<int,future<string>> encoding_tasks;
-    int total_task = nw;//(nw+(nw*20/100));
-    interval = lenght/total_task;
-
-    readFile.seekg(0);
-    t = "";
-    i = 0;
+    unordered_map<char,string> huffmanCode;
     {
-        utimer t0("Encoding text and compression");
-        // while(!readFile.eof())
-        // {
-        //     getline(readFile, line);
-        //     t += line;
-        //     if(t.length() > interval || readFile.eof())
-        //     {
-        //         encoding_tasks[i] = pool.submit(encoding_text, t, huffmanCode);
-        //         t = "";
-        //         i++;
-        //         if(i == nw || i == nw + ((nw*15)/100))
-        //             interval = interval/2;
-        //     }
-        // }
-        // int total_task = i;
+        utimer t0("Huffman Encode");
+        huffmanCode = buildHuffmanEncoding(mapper);
+    }
+    
+    unordered_map<int,future<string>> encoding_tasks;
 
+    vector<string> out_string(nw);
+    vector<string> encoded_vector(nw);
+    unordered_map<int, future<string>> compress_tasks;
+    string rem_character = ""; 
+    {
+        utimer t0("Encoding text");
+
+        int start = 0;
+        int interval = full_text.length()/nw;
+        for(int i = 0; i < nw; i++)
         {
-            utimer t0("-- Encoding Threads Overhead");
-            for(int i = 0; i < nw; i++)
-            {
-                encoding_tasks[i] = pool.submit(encoding_text1, full_text, huffmanCode, i, nw);
-            }
+            if(i == nw - 1)
+                interval = full_text.size() - start;
+            encoding_tasks[i] = pool.submit(encoding_text, full_text.substr(start, interval), huffmanCode);
+            start += interval;
         }
 
-        vector<byte> byte_array;
-        unordered_map<int, future<string>> compress_tasks;
-        string rem_character = ""; 
-        for(i = 0; i < total_task; i++)
+        for(i = 0; i < nw; i++)
         {
             const string enc = encoding_tasks[i].get();
+            encoded_vector[i] = enc;
+        }
+    }
+
+    {
+        utimer t0("Compression");
+        for(i = 0; i < nw; i++)
+        {
+            string enc = encoded_vector[i];
             string to_compress = rem_character + enc.substr(0, ((enc.length()/8) * 8) - rem_character.length());
             rem_character = enc.substr((enc.length()/8) * 8, enc.length());
+            
             compress_tasks[i] = pool.submit(compress_byte, to_compress);
         }
 
-        for(i = 0; i < total_task; i++)
+        for(i = 0; i < nw; i++)
         {
-            const string enc = compress_tasks[i].get();
-            res += enc;
+            const string compressed = compress_tasks[i].get();
+            out_string[i] = compressed;
         }
     }
 
     {
         utimer t0("Write out file");
-        writeFile << res;
+        for(int i = 0; i < nw; i++)
+        {
+            writeFile << out_string[i];
+        }
     }
 
     pool.shutdown();
 
 }
 
-int main()
+int main(int argc, char * argv[])
 {
+    string text = (argc > 1 ? argv[1] : "../test.txt");
     int i = 1;
     for(i; i <= 64; i=i*2)
     {
         cout << "--------------------------------------------------------------------------" <<endl;
         cout << "Computing Native Thread Huffman implementation with " << i << " threads:" << endl;
-        NTHuffmanEncoding("../test.txt", i);
+        NTHuffmanEncoding(text, i);
         if(i == 1) 
         {
             seq_time = usecs;
@@ -269,5 +192,4 @@ int main()
         cout << "EFFICIENCY(" << i << ") = " << speedup/i << endl;
     }
 
-    decodeCompressedText();
 }
