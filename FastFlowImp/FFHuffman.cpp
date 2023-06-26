@@ -68,14 +68,14 @@ void FFHuffmanEncoding(string text, int nw)
     }
 
     long utime_compress_text;
-    {
+    { 
         utimer t1("Compressing text");
-        auto e = compression::emitter(nw, encoded_vector, &out_vector);
+        auto e = compression::emitter(nw, &encoded_vector, &out_vector);
         auto c = compression::collector();
-        ff::ff_Farm<compression::TASK> cf(compression::worker, nw);
+        ff::ff_Farm<compression::TASK> cf(compression::worker, nw); 
         cf.add_emitter(e);
         cf.add_collector(c);
-        cf.run_and_wait_end();
+        cf.run_and_wait_end(); 
     }
 
     long utime_write_text;

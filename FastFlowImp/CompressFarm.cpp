@@ -14,7 +14,7 @@ using namespace std;
 namespace compression
 {
     typedef struct __task {
-        string text;
+        vector<string>* text;
         int id;
         vector<string>* out_vector;
     } TASK; 
@@ -22,10 +22,10 @@ namespace compression
     class emitter : public ff::ff_monode_t<TASK> {
     private: 
         int nw;
-        vector<string> encoded_vector;
+        vector<string>* encoded_vector;
         vector<string>* out_vector;
     public:
-        emitter(int nw, vector<string> encoded_vector, vector<string>* out_vector)
+        emitter(int nw, vector<string>* encoded_vector, vector<string>* out_vector)
                 :nw(nw),encoded_vector(encoded_vector), out_vector(out_vector){}
 
         TASK * svc(TASK *) 
@@ -35,16 +35,7 @@ namespace compression
 
             for(int i = 0; i < nw; i++)
             {
-                // if(i > 0)
-                // {
-                //     rem_character = encoded_vector[i-1].length() - (encoded_vector[i-1] * 8)/8;
-                //     to_compress = encoded_vector[i-1].substr((encoded_vector[i-1] * 8)/8, rem_character) + (encoded_vector[i] * 8)/8;
-                // }
-                // else
-                // {
-                //     to_compress = (encoded_vector[i] * 8)/8;
-                // }
-                auto t = new TASK(encoded_vector[i], i, out_vector);
+                auto t = new TASK(encoded_vector, i, out_vector);
                 ff_send_out(t);
             }
 
@@ -68,15 +59,22 @@ namespace compression
     };
 
     TASK *  worker(TASK * t, ff::ff_node* nn) {
-        auto text = t->text;
+        auto text_v = t->text;
         auto out_vector = t->out_vector;
-        auto id = t-> id;
+        auto id = t->id;
+        string rem_character;
+        if(id != 0)
+        {
+            string prev = (*text_v)[id-1];
+            rem_character = prev.substr((prev.length()/8)*8, prev.length());
+        }
         string asciiString;
         string comp_text;
-        for (size_t i = 0; i < text.length(); i += 8) 
+        string text = rem_character + (*text_v)[id];
+        for (size_t i = 0; i < text.length(); i += 8)
         {
             bitset<8> bits(text.substr(i, 8));
-            comp_text += static_cast<char>(bits.to_ulong()); 
+            comp_text += static_cast<char>(bits.to_ulong());
         }
         (*out_vector)[id] = comp_text;
         return t;
